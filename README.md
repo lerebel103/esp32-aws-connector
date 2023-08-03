@@ -15,8 +15,8 @@ extern "C" void app_main() {
   aws_connector_init(xNetworkEventGroup);
 
   // ... 
-  // Continue with your business logic here, from this point.
-  // WiFi connectivity, certificate handling etc will be handled automatically
+  // Continue with your business logic as you normally would.
+  // WiFi connectivity, certificate handling etc will be handled for you.
   
 }
 ```
