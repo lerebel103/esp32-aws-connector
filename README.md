@@ -24,5 +24,6 @@ extern "C" void app_main() {
 Per AWS Fleet Provioning, there are specific requirements to create provisioning templates, root certificates, policies
 and preload the required info onto NVS to use this component. Documentation coming soon...
 
+To see this code action, checkout https://github.com/lerebel103/hottop-sidecar-firmware.
 
 WIP, apologies for the brevity, only working on this in my spare time.
