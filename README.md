@@ -25,4 +25,4 @@ Per AWS Fleet Provioning, there are specific requirements to create provisioning
 and preload the required info onto NVS to use this component. Documentation coming soon...
 
 
-WIP, apologies for the brevity.
+WIP, apologies for the brevity, only working on this in my spare time.
