@@ -3,13 +3,11 @@
 #include <freertos/event_groups.h>
 
 #include "sntp_sync.h"
+#include <esp_sntp.h>
 #include <esp_log.h>
 #include <esp_attr.h>
-#include <lwip/err.h>
-#include <lwip/apps/sntp.h>
 
 #include <sys/time.h>
-#include <esp_sntp.h>
 #include "common/events_common.h"
 
 #define TAG "sntp"
@@ -55,25 +53,25 @@ static void initialize_sntp(const char* primary_server) {
   xEventGroupClearBits(xNetworkEventGroup, SNTP_TIME_SYNCED_BIT);
 
   g_start_tick = xTaskGetTickCount() * portTICK_PERIOD_MS;
-  sntp_stop();
+  esp_sntp_stop();
 
-  sntp_setoperatingmode(SNTP_OPMODE_POLL);
+  esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
   if (primary_server != nullptr) {
     ESP_LOGI(TAG, "Initializing SNTP with primary server '%s'", primary_server);
-    sntp_setservername(0, primary_server);
+    esp_sntp_setservername(0, primary_server);
   } else {
     ESP_LOGI(TAG, "Initializing SNTP with primary server 'time.google.com'");
-    sntp_setservername(0, "time.google.com");
+    esp_sntp_setservername(0, "time.google.com");
   }
 
-  sntp_setservername(1, "0.pool.ntp.org");
-  sntp_setservername(2, "1.pool.ntp.org");
-  sntp_setservername(3, "2.pool.ntp.org");
+  esp_sntp_setservername(1, "0.pool.ntp.org");
+  esp_sntp_setservername(2, "1.pool.ntp.org");
+  esp_sntp_setservername(3, "2.pool.ntp.org");
 
   // Register CB so we know when time gets synchronised
   sntp_set_time_sync_notification_cb(&time_synced_handler);
 
-  sntp_init();
+  esp_sntp_init();
 }
 
 void sntp_set_system_tz(const char *tz) {

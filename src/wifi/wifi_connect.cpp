@@ -13,6 +13,7 @@
 #include <esp_log.h>
 #include <wifi_provisioning/scheme_ble.h>
 #include <esp_mac.h>
+#include <cstring>
 
 #define TAG "wifi_connect"
 
