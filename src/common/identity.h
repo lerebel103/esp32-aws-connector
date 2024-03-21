@@ -2,7 +2,6 @@
 
 
 struct identity_t {
-  char *stage_name;
   char *thing_type;
   int8_t hardware_major;
   int8_t hardware_minor;

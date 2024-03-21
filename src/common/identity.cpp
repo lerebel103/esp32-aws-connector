@@ -59,11 +59,6 @@ static void _load_identity() {
   ESP_ERROR_CHECK(nvs_get_i8(nvs_handle, NVS_HARDWARE_MAJOR_KEY, &s_identity.hardware_major));
   ESP_ERROR_CHECK(nvs_get_i8(nvs_handle, NVS_HARDWARE_MINOR_KEY, &s_identity.hardware_minor));
 
-  ESP_ERROR_CHECK(nvs_get_str(nvs_handle, NVS_STAGE_NAME_KEY, nullptr, &len));
-  free(s_identity.stage_name);
-  s_identity.stage_name = (char *) calloc(len + 1, 1);
-  ESP_ERROR_CHECK(nvs_get_str(nvs_handle, NVS_STAGE_NAME_KEY, s_identity.stage_name, &len));
-
   ESP_ERROR_CHECK(nvs_get_str(nvs_handle, NVS_PROV_TEMPLATE_KEY, nullptr, &len));
   free(s_identity.prov_template);
   s_identity.prov_template = (char *) calloc(len + 1, 1);
