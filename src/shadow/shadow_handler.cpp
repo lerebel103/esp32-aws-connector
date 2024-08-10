@@ -95,7 +95,7 @@ static void _event_handler(void *arg, esp_event_base_t event_base, int32_t event
 esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_handle_t *ret_handle) {
   esp_err_t ret = ESP_OK;
 
-  device_shadow_t *handle;
+  device_shadow_t *handle = nullptr;
   ESP_GOTO_ON_FALSE(ret_handle, ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
   handle = (device_shadow_t *) heap_caps_calloc(1, sizeof(device_shadow_t), MALLOC_CAP_DEFAULT);
   ESP_GOTO_ON_FALSE(handle, ESP_ERR_NO_MEM, err, TAG, "no memory left for allocation");

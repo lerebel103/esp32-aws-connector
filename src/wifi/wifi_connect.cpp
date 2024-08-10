@@ -14,6 +14,7 @@
 #include <wifi_provisioning/scheme_ble.h>
 #include <esp_mac.h>
 #include <cstring>
+#include <esp_timer.h>
 
 #define TAG "wifi_connect"
 
@@ -101,7 +102,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 
     // Set host name as STA client
     char hostname[128];
-    char* mac = _get_short_mac();
+    char *mac = _get_short_mac();
     sprintf(hostname, "%s-%s", identity_get()->thing_type, mac);
     ESP_ERROR_CHECK(esp_netif_set_hostname(event->esp_netif, hostname));
     ESP_LOGI(TAG, "Hostname set to  %s", hostname);
@@ -169,11 +170,9 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
   esp_qrcode_generate(&cfg, payload);
 }
 
-static void revstr(uint8_t *str1, size_t len)
-{
+static void revstr(uint8_t *str1, size_t len) {
   uint8_t temp;
-  for (int i = 0; i < len/2; i++)
-  {
+  for (int i = 0; i < len / 2; i++) {
     temp = str1[i];
     str1[i] = str1[len - i - 1];
     str1[len - i - 1] = temp;
@@ -230,7 +229,7 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
     char service_name[12];
     get_device_service_name(service_name, sizeof(service_name));
 
-    uint8_t custom_service_uuid[16] = { };
+    uint8_t custom_service_uuid[16] = {};
     uint64_t value = CONFIG_BLE_WIFI_PROV_CUSTOM_SERVICE_UUID_LOW;
     memcpy(&custom_service_uuid[0], &value, 8);
     value = CONFIG_BLE_WIFI_PROV_CUSTOM_SERVICE_UUID_HIGH;
@@ -257,7 +256,7 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
 
   } else {
     // Already provisioned
-    if(CONFIG_BLE_WIFI_PROV_ENABLED) {
+    if (CONFIG_BLE_WIFI_PROV_ENABLED) {
       ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
       xEventGroupSetBits(xNetworkEventGroup, WIFI_PROVISIONED_BIT);
     }

@@ -2,6 +2,7 @@
 
 #include <esp_bit_defs.h>
 #include <freertos/event_groups.h>
+#include <ctime>
 
 #define DEFAULT_SYSTEM_TZ "AWST-8"
 

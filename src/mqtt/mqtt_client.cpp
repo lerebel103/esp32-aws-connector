@@ -8,6 +8,7 @@
 #include <freertos/semphr.h>
 #include <esp_mac.h>
 #include <esp_event.h>
+#include <esp_timer.h>
 
 #include "common/events_common.h"
 
