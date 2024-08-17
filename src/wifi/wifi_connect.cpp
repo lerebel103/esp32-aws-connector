@@ -2,7 +2,7 @@
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
 #include "wifi_connect.h"
-#include "qrcode.h"
+#include <qrcode.h>
 #include "sntp/sntp_sync.h"
 #include "common/events_common.h"
 #include "common/identity.h"
@@ -24,6 +24,11 @@
 #define PROV_QR_VERSION         "v1"
 #define PROV_TRANSPORT_BLE      "ble"
 
+// Calculates the number of bytes needed to store any QR Code up to and including the given version number,
+// as a compile-time constant. For example, 'uint8_t buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(25)];'
+// can store any single QR Code from version 1 to 25 (inclusive). The result fits in an int (or int16).
+// Requires qrcodegen_VERSION_MIN <= n <= qrcodegen_VERSION_MAX.
+#define qrcodegen_BUFFER_LEN_FOR_VERSION(n)  ((((n) * 4 + 17) * ((n) * 4 + 17) + 7) / 8 + 1)
 
 /**
  * @brief The event group used to manage network events.
@@ -31,6 +36,8 @@
 static EventGroupHandle_t xNetworkEventGroup;
 static wifi_metrics_t s_metrics = {};
 static int64_t _start_time;
+static esp_qrcode_handle_t s_qrcode = nullptr;
+static int s_qr_len = 0;
 
 static char *_get_short_mac() {
   static char mac[14];
@@ -94,6 +101,13 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     _start_time = esp_timer_get_time();
     esp_wifi_connect();
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+    // We no longer need the contents of qrcode
+    if (s_qrcode) {
+      free((void*)s_qrcode);
+      s_qrcode = nullptr;
+      s_qr_len = 0;
+    }
+
     ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
     sprintf(s_metrics.ip_addr, IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(s_metrics.gw_addr, IPSTR, IP2STR(&event->ip_info.gw));
@@ -154,6 +168,22 @@ static void get_device_service_name(char *service_name, size_t max) {
   return ESP_OK;
 } */
 
+/**
+ * Called when a new QR code is generated
+ *
+ * We can then trap this event and then relay it to other parts of the system
+ * @param qrcode
+ */
+static void _handle_qrcode(esp_qrcode_handle_t qrcode) {
+  // Copy qr content
+  if (s_qrcode == nullptr) {
+    s_qrcode = (uint8_t *)calloc(1, s_qr_len);
+  }
+
+  memcpy((void *) s_qrcode, qrcode, s_qr_len);
+  esp_qrcode_print_console(qrcode);
+}
+
 static void wifi_prov_print_qr(const char *name, const char *username, const char *pop, const char *transport) {
   if (!name || !transport) {
     ESP_LOGW(TAG, "Cannot generate QR code payload. Data missing.");
@@ -167,7 +197,17 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
   }
   ESP_LOGI(TAG, "Scan this QR code from the provisioning application for Provisioning.");
   esp_qrcode_config_t cfg = ESP_QRCODE_CONFIG_DEFAULT();
+  s_qr_len = qrcodegen_BUFFER_LEN_FOR_VERSION(cfg.max_qrcode_version);
+  cfg.display_func = _handle_qrcode;
   esp_qrcode_generate(&cfg, payload);
+}
+
+esp_qrcode_handle_t wifi_get_prov_qr() {
+  return s_qrcode;
+}
+
+int wifi_get_prov_qr_len() {
+  return esp_qrcode_get_size(s_qrcode);
 }
 
 static void revstr(uint8_t *str1, size_t len) {

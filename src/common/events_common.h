@@ -8,6 +8,7 @@
 #define CORE_MQTT_CLIENT_CONNECTED_BIT           ( 1 << 2 )
 #define SNTP_TIME_SYNCED_BIT                     ( 1 << 3 )
 #define CORE_MQTT_OTA_IN_PROGRESS_BIT            ( 1 << 4 )
+#define MAX_ESP32_AWS_CONNECTOR_EVENTS_BIT       CORE_MQTT_OTA_IN_PROGRESS_BIT
 
 
 ESP_EVENT_DECLARE_BASE( CORE_MQTT_EVENT );
