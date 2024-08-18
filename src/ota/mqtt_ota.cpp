@@ -81,27 +81,27 @@ typedef enum jobMessageType {
 /**
  * @brief Update File path buffer.
  */
-uint8_t updateFilePath[OTA_MAX_FILE_PATH_SIZE];
+uint8_t *updateFilePath;
 
 /**
  * @brief Certificate File path buffer.
  */
-uint8_t certFilePath[OTA_MAX_FILE_PATH_SIZE];
+uint8_t *certFilePath;
 
 /**
  * @brief Stream name buffer.
  */
-uint8_t streamName[OTA_MAX_STREAM_NAME_SIZE];
+uint8_t *streamName;
 
 /**
  * @brief Decode memory.
  */
-uint8_t decodeMem[otaconfigFILE_BLOCK_SIZE];
+uint8_t *decodeMem;
 
 /**
  * @brief Bitmap memory.
  */
-uint8_t bitmap[OTA_MAX_BLOCK_BITMAP_SIZE];
+uint8_t *bitmap;
 
 /**
  * @brief The common prefix for all OTA topics.
@@ -131,25 +131,6 @@ static OtaEventData_t eventBuffer[otaconfigMAX_NUM_OTA_DATA_BUFFERS];
 // static osi_sem_t bufferSemaphore;
 static osi_sem_t bufferSemaphore;
 
-/**
- * @brief The buffer passed to the OTA Agent from application while initializing.
- */
-static OtaAppBuffer_t otaBuffer = {
-    .pUpdateFilePath    = updateFilePath,
-    .updateFilePathsize = OTA_MAX_FILE_PATH_SIZE,
-    .pCertFilePath      = certFilePath,
-    .certFilePathSize   = OTA_MAX_FILE_PATH_SIZE,
-    .pStreamName        = streamName,
-    .streamNameSize     = OTA_MAX_STREAM_NAME_SIZE,
-    .pDecodeMemory      = decodeMem,
-    .decodeMemorySize   = otaconfigFILE_BLOCK_SIZE,
-    .pFileBitmap        = bitmap,
-    .fileBitmapSize     = OTA_MAX_BLOCK_BITMAP_SIZE,
-    .pUrl = nullptr,
-    .urlSize = 0,
-    .pAuthScheme = nullptr,
-    .authSchemeSize = 0
-};
 
 static OtaInterfaces_t otaInterfaces;
 static EventGroupHandle_t s_networkEventGroup;
@@ -557,6 +538,32 @@ esp_err_t mqtt_ota_init(EventGroupHandle_t networkEventGroup) {
     ret = ESP_FAIL;
     goto error;
   }
+
+  // Can't do static here, it overflows IRAM BSS.
+  // This is a memory leak in theory, although this is going to be permanent for the lifetime of the device
+  updateFilePath = static_cast<uint8_t *>(malloc(OTA_MAX_FILE_PATH_SIZE));
+  certFilePath = static_cast<uint8_t *>(malloc(OTA_MAX_FILE_PATH_SIZE));
+  streamName = static_cast<uint8_t *>(malloc(OTA_MAX_STREAM_NAME_SIZE));
+  decodeMem = static_cast<uint8_t *>(malloc(otaconfigFILE_BLOCK_SIZE));
+  bitmap = static_cast<uint8_t *>(malloc(OTA_MAX_BLOCK_BITMAP_SIZE));
+
+  static OtaAppBuffer_t otaBuffer = {
+      .pUpdateFilePath    = updateFilePath,
+      .updateFilePathsize = OTA_MAX_FILE_PATH_SIZE,
+      .pCertFilePath      = certFilePath,
+      .certFilePathSize   = OTA_MAX_FILE_PATH_SIZE,
+      .pStreamName        = streamName,
+      .streamNameSize     = OTA_MAX_STREAM_NAME_SIZE,
+      .pDecodeMemory      = decodeMem,
+      .decodeMemorySize   = otaconfigFILE_BLOCK_SIZE,
+      .pFileBitmap        = bitmap,
+      .fileBitmapSize     = OTA_MAX_BLOCK_BITMAP_SIZE,
+      .pUrl = nullptr,
+      .urlSize = 0,
+      .pAuthScheme = nullptr,
+      .authSchemeSize = 0
+  };
+
 
   if ((otaRet = OTA_Init(&otaBuffer,
                          &otaInterfaces,
