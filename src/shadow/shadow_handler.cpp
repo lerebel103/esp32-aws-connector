@@ -13,6 +13,10 @@
 
 #define TAG "shadow"
 
+#define MAX_HANDLES 10
+static device_shadow_handle_t handles[MAX_HANDLES] = {nullptr};
+
+
 struct device_shadow_t {
   device_shadow_cfg_t cfg;
 
@@ -24,7 +28,7 @@ struct device_shadow_t {
 };
 
 void null_shadow_handler(MQTTContext_t *, MQTTPublishInfo_t *pxPublishInfo) {
-  ESP_LOGI(TAG, "Receive into NULL shadow handler, topic %.*s: %.*s",
+  ESP_LOGD(TAG, "Receive into NULL shadow handler, topic %.*s: %.*s",
            pxPublishInfo->topicNameLength, pxPublishInfo->pTopicName,
            pxPublishInfo->payloadLength, (const char *) pxPublishInfo->pPayload);
 }
@@ -50,7 +54,7 @@ esp_err_t _subscribe(device_shadow_t *handle) {
   ESP_RETURN_ON_FALSE(handle, ESP_ERR_INVALID_ARG, TAG, "shadow handler instance is null");
   esp_err_t ret = ESP_OK;
 
-  ESP_LOGI(TAG, "Subscribing to shadow topics");
+  ESP_LOGI(TAG, "### Subscribing to shadow topics for %s", handle->cfg.name);
   static const int NUM_SUBSCRIPTIONS = 3;
   MQTTSubscribeInfo_t subscribeInfo[NUM_SUBSCRIPTIONS] = {
       {
@@ -85,15 +89,32 @@ esp_err_t _subscribe(device_shadow_t *handle) {
 static void _event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
   if (event_id == CORE_MQTT_CONNECTED_EVENT) {
     if (!mqtt_provisioning_active()) {
-      // Only do shadows when we are not provisioning
-      auto *handle = (device_shadow_t *) arg;
-      _subscribe(handle);
+      // Re-subscribe all shadow handlers
+      for (auto & i : handles) {
+        auto *handle = (device_shadow_t *) i;
+        if (handle) {
+          _subscribe(handle);
+        }
+      }
     }
   }
 }
 
 esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_handle_t *ret_handle) {
   esp_err_t ret = ESP_OK;
+
+  // See if we still have room in our list
+  int idx = 0;
+  for( ; idx < MAX_HANDLES; idx++) {
+    if (handles[idx] == nullptr) {
+      break;
+    }
+  }
+
+  if (idx >= MAX_HANDLES) {
+    ESP_LOGE(TAG, "Cannot create more shadow handlers, max limit reached");
+    return ESP_ERR_NO_MEM;
+  }
 
   device_shadow_t *handle = nullptr;
   ESP_GOTO_ON_FALSE(ret_handle, ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
@@ -107,7 +128,7 @@ esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_hand
   memcpy(&handle->cfg, &cfg, sizeof(device_shadow_cfg_t));
 
   // listen to connection events, so we can setup subscriptions
-  ESP_ERROR_CHECK(esp_event_handler_register(CORE_MQTT_EVENT, ESP_EVENT_ANY_ID, &_event_handler, handle));
+  ESP_ERROR_CHECK(esp_event_handler_register(CORE_MQTT_EVENT, ESP_EVENT_ANY_ID, &_event_handler, handles));
 
   // Create publish topic
   _allocate_topic(handle->cfg, &handle->topic_get_pub, "get", "");
@@ -122,6 +143,8 @@ esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_hand
   } else {
     ESP_LOGI(TAG, "Shadow handler created for Classic shadow");
   }
+
+  handles[idx] = handle;
   *ret_handle = handle;
   return ret;
 
@@ -169,6 +192,21 @@ esp_err_t shadow_handler_update(device_shadow_handle_t handle, char* payload, si
 
 esp_err_t shadow_handler_del(device_shadow_handle_t handle) {
   ESP_RETURN_ON_FALSE(handle, ESP_ERR_INVALID_ARG, TAG, "invalid argument");
+
+  // Find it
+  bool found = false;
+  for (auto & i : handles) {
+    if (i == handle) {
+      i = nullptr;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    ESP_LOGE(TAG, "Cannot find shadow handler to delete");
+    return ESP_ERR_NOT_FOUND;
+  }
+
   if (strlen(handle->cfg.name) > 0) {
     ESP_LOGI(TAG, "Deleting Shadow handler created for named shadow '%s'", handle->cfg.name);
   } else {
