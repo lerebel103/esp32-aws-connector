@@ -30,7 +30,7 @@ ESP_EVENT_DEFINE_BASE(CORE_MQTT_EVENT);
 /**
  * @brief Size of the network buffer for MQTT packets.
  */
-#define NETWORK_BUFFER_SIZE       ( CONFIG_MQTT_NETWORK_BUFFER_SIZE )
+#define NETWORK_BUFFER_SIZE       ( CONFIG_MQTT_AWSC_NETWORK_BUFFER_SIZE )
 
 /**
  * @brief The maximum number of retries for connecting to server.
@@ -133,12 +133,12 @@ ESP_EVENT_DEFINE_BASE(CORE_MQTT_EVENT);
 /**
  * @brief The task stack size of the coreMQTT-Agent task.
  */
-#define configMQTT_TASK_STACK_SIZE                ( CONFIG_MQTT_TASK_STACK_SIZE )
+#define configMQTT_TASK_STACK_SIZE                ( CONFIG_MQTT_AWSC_TASK_STACK_SIZE )
 
 /**
  * @brief The task priority of the coreMQTT-Agent task.
  */
-#define configMQTT_TASK_PRIORITY                  ( CONFIG_MQTT_TASK_PRIORITY )
+#define configMQTT_TASK_PRIORITY                  ( CONFIG_MQTT_AWSC_TASK_PRIORITY )
 
 #define MAX_SUB_REQUESTS 32
 
@@ -332,7 +332,7 @@ subscribe_command(bool is_subscribe, const MQTTSubscribeInfo_t *topics, size_t n
         returnStatus = EXIT_FAILURE;
       } else {
         returnStatus = waitForPacketAck(&xMqttContext, packetId,
-                                        ackWaitMS == UINT16_MAX ? CONFIG_MQTT_ACK_TIMEOUT_MS : ackWaitMS);
+                                        ackWaitMS == UINT16_MAX ? CONFIG_MQTT_AWSC_ACK_TIMEOUT_MS : ackWaitMS);
 
         // Check each status now
         if (returnStatus == EXIT_SUCCESS && numSubAckStatus == numTopics) {
@@ -418,7 +418,7 @@ int mqtt_client_publish(const MQTTPublishInfo_t *publishInfo, uint16_t ackWaitMS
         returnStatus = EXIT_FAILURE;
       } else {
         returnStatus = waitForPacketAck(&xMqttContext, packetId,
-                                        ackWaitMS == UINT16_MAX ? CONFIG_MQTT_ACK_TIMEOUT_MS : ackWaitMS);
+                                        ackWaitMS == UINT16_MAX ? CONFIG_MQTT_AWSC_ACK_TIMEOUT_MS : ackWaitMS);
       }
     }
     xSemaphoreGive(mqttMutex);

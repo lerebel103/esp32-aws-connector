@@ -2,28 +2,28 @@ menu "esp32-networking"
 
     menu "MQTT Config"
 
-    config MQTT_NETWORK_BUFFER_SIZE
+    config MQTT_AWSC_NETWORK_BUFFER_SIZE
         int "Size of the network buffer for MQTT packets"
         range 1024 32000
         default 4096
         help
             Size of the network buffer for MQTT packets.
 
-    config MQTT_TASK_STACK_SIZE
+    config MQTT_AWSC_TASK_STACK_SIZE
         int "MQTT client loop stack size"
         range 3052 8096
         default 4096
         help
             Stack size of MQTT task loop.
 
-    config MQTT_TASK_PRIORITY
+    config MQTT_AWSC_TASK_PRIORITY
         int "Priority of MQTT task"
         range 1 9
         default 4
         help
             RTOS priority.
 
-    config MQTT_ACK_TIMEOUT_MS
+    config MQTT_AWSC_ACK_TIMEOUT_MS
         int "Default timeout to wait for ACKs"
         range 1000 20000
         default 5000

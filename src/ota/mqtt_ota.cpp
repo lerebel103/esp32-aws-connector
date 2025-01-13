@@ -336,7 +336,7 @@ static OtaMqttStatus_t mqttUnsubscribe(const char *pTopicFilter,
       }
   };
 
-  auto res = mqtt_client_unsubscribe(subscribeInfo, NUM_SUBSCRIPTIONS, CONFIG_MQTT_ACK_TIMEOUT_MS);
+  auto res = mqtt_client_unsubscribe(subscribeInfo, NUM_SUBSCRIPTIONS, CONFIG_MQTT_AWSC_ACK_TIMEOUT_MS);
   return res == EXIT_SUCCESS ? OtaMqttSuccess : OtaMqttUnsubscribeFailed;
 }
 
