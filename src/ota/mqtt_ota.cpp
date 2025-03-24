@@ -13,9 +13,10 @@
 #include <esp_event.h>
 #include <esp_app_desc.h>
 #include <esp_check.h>
+#include <pthread.h>
+#include <sys/_pthreadtypes.h>
 
 extern "C" {
-#include <osi/semaphore.h>
 #include <cerrno>
 }
 
@@ -126,10 +127,9 @@ static OtaEventData_t eventBuffer[otaconfigMAX_NUM_OTA_DATA_BUFFERS];
 
 
 /**
- * @brief Semaphore for synchronizing buffer operations.
+ * @brief Mutex for synchronizing buffer operations.
  */
-// static osi_sem_t bufferSemaphore;
-static osi_sem_t bufferSemaphore;
+static pthread_mutex_t bufferMutex;
 
 
 static OtaInterfaces_t otaInterfaces;
@@ -178,7 +178,7 @@ OtaEventData_t *otaEventBufferGet() {
   OtaEventData_t *pFreeBuffer = nullptr;
 
   do {
-    if (osi_sem_take(&bufferSemaphore, OSI_SEM_MAX_TIMEOUT) == 0) {
+    if (pthread_mutex_lock(&bufferMutex) == 0) {
       for (ulIndex = 0; ulIndex < otaconfigMAX_NUM_OTA_DATA_BUFFERS; ulIndex++) {
         if (pFreeBuffer == nullptr && !eventBuffer[ulIndex].bufferUsed) {
           eventBuffer[ulIndex].bufferUsed = true;
@@ -186,9 +186,9 @@ OtaEventData_t *otaEventBufferGet() {
         }
       }
 
-      osi_sem_give(&bufferSemaphore);
+      pthread_mutex_unlock(&bufferMutex);
     } else {
-      ESP_LOGE(TAG, "Failed to get buffer semaphore: ,errno=%s", strerror(errno));
+      ESP_LOGE(TAG, "Failed to get buffer mutex: ,errno=%s", strerror(errno));
     }
 
     // We only have a limited amount of buffers (4 minimum)
@@ -370,11 +370,11 @@ static void setOtaInterfaces(OtaInterfaces_t *pOtaInterfaces) {
 
 
 void otaEventBufferFree(OtaEventData_t *const pxBuffer) {
-  if (osi_sem_take(&bufferSemaphore, OSI_SEM_MAX_TIMEOUT) == 0) {
+  if (pthread_mutex_lock(&bufferMutex) == 0) {
     pxBuffer->bufferUsed = false;
-    (void) osi_sem_give(&bufferSemaphore);
+    (void) pthread_mutex_unlock(&bufferMutex);
   } else {
-    ESP_LOGE(TAG, "Failed to get buffer semaphore: "
+    ESP_LOGE(TAG, "Failed to get buffer mutex: "
                   ",errno=%s", strerror(errno));
   }
 }
@@ -520,9 +520,8 @@ esp_err_t mqtt_ota_init(EventGroupHandle_t networkEventGroup) {
            appFirmwareVersion.u.x.minor,
            appFirmwareVersion.u.x.build);
 
-  /* Initialize semaphore for buffer operations. */
-  if (osi_sem_new(&bufferSemaphore, 0x7FFFU, 1) != 0) {
-    ESP_LOGE(TAG, "Failed to initialize buffer semaphore, errno=%s", strerror(errno));
+  if (pthread_mutex_init(&bufferMutex, nullptr) != 0) {
+    ESP_LOGE(TAG, "Failed to initialize buffer mutex, errno=%s", strerror(errno));
     ret = ESP_FAIL;
     goto error;
   }
