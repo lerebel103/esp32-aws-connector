@@ -1,20 +1,22 @@
+#include "wifi_connect.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
-#include "wifi_connect.h"
+#include <wifi_provisioning/manager.h>
+#include <wifi_provisioning/scheme_ble.h>
 #include <qrcode.h>
 #include "sntp/sntp_sync.h"
 #include "common/events_common.h"
 #include "common/identity.h"
 #include <esp_netif.h>
-#include <wifi_provisioning/manager.h>
 #include <esp_wifi_default.h>
 #include <esp_wifi.h>
 #include <esp_log.h>
-#include <wifi_provisioning/scheme_ble.h>
 #include <esp_mac.h>
 #include <cstring>
 #include <esp_timer.h>
+
 
 #define TAG "wifi_connect"
 
