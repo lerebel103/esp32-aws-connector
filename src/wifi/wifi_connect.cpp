@@ -64,13 +64,13 @@ static void event_handler(void *arg, esp_event_base_t event_base,
       case WIFI_PROV_CRED_RECV: {
         wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *) event_data;
         ESP_LOGI(TAG, "Received Wi-Fi credentials"
-                      "\n\tSSID     : %s\n", (const char *) wifi_sta_cfg->ssid);
+                 "\n\tSSID     : %s\n", (const char *) wifi_sta_cfg->ssid);
         break;
       }
       case WIFI_PROV_CRED_FAIL: {
         wifi_prov_sta_fail_reason_t *reason = (wifi_prov_sta_fail_reason_t *) event_data;
         ESP_LOGE(TAG, "Provisioning failed!\n\tReason : %s"
-                      "\n\tPlease reset to factory and retry provisioning",
+                 "\n\tPlease reset to factory and retry provisioning",
                  (*reason == WIFI_PROV_STA_AUTH_ERROR) ?
                  "Wi-Fi station authentication failed" : "Wi-Fi access-point not found");
 #ifdef CONFIG_EXAMPLE_RESET_PROV_MGR_ON_FAILURE
@@ -105,7 +105,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     // We no longer need the contents of qrcode
     if (s_qrcode) {
-      free((void*)s_qrcode);
+      free((void *) s_qrcode);
       s_qrcode = nullptr;
       s_qr_len = 0;
     }
@@ -179,7 +179,7 @@ static void get_device_service_name(char *service_name, size_t max) {
 static void _handle_qrcode(esp_qrcode_handle_t qrcode) {
   // Copy qr content
   if (s_qrcode == nullptr) {
-    s_qrcode = (uint8_t *)calloc(1, s_qr_len);
+    s_qrcode = (uint8_t *) calloc(1, s_qr_len);
   }
 
   memcpy((void *) s_qrcode, qrcode, s_qr_len);
@@ -193,8 +193,8 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
   }
   char payload[150] = {0};
   if (pop) {
-    snprintf(payload, sizeof(payload), "{\"ver\":\"%s\",\"name\":\"%s\"" \
-                    ",\"pop\":\"%s\",\"transport\":\"%s\"}",
+    snprintf(payload, sizeof(payload), "{\"ver\":\"%s\",\"name\":\"%s\""
+             ",\"pop\":\"%s\",\"transport\":\"%s\"}",
              PROV_QR_VERSION, name, pop, transport);
   }
   ESP_LOGI(TAG, "Scan this QR code from the provisioning application for Provisioning.");
@@ -262,9 +262,12 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
     xEventGroupClearBits(xNetworkEventGroup, WIFI_PROVISIONED_BIT);
 
     wifi_prov_mgr_config_t config = {
-        .scheme = wifi_prov_scheme_ble,
-        .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
-        .app_event_handler = WIFI_PROV_EVENT_HANDLER_NONE
+      .scheme = wifi_prov_scheme_ble,
+      .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
+      .app_event_handler = WIFI_PROV_EVENT_HANDLER_NONE,
+      .wifi_prov_conn_cfg = {
+        .wifi_conn_attempts = 0,
+      },
     };
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
 
@@ -295,7 +298,6 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
     ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, NULL));
     // wifi_prov_mgr_endpoint_register("custom-data", custom_prov_data_handler, NULL);
     wifi_prov_print_qr(service_name, username, pop, PROV_TRANSPORT_BLE);
-
   } else {
     // Already provisioned
     if (CONFIG_BLE_WIFI_PROV_ENABLED) {
