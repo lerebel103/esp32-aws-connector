@@ -47,13 +47,15 @@ extern const char pcAwsCodeSigningCertPem[] asm("_binary_aws_codesign_crt_start"
 /**
  * @brief Struct for firmware version.
  */
-const AppVersion32_t appFirmwareVersion = {.u {
-    .x {
-        .build = CMAKE_FIRMWARE_VERSION_BUILD,
-        .minor = CMAKE_FIRMWARE_VERSION_MINOR,
-        .major = CMAKE_FIRMWARE_VERSION_MAJOR,
+const AppVersion32_t appFirmwareVersion = {
+  .u{
+    .x{
+      .build = CMAKE_FIRMWARE_VERSION_BUILD,
+      .minor = CMAKE_FIRMWARE_VERSION_MINOR,
+      .major = CMAKE_FIRMWARE_VERSION_MAJOR,
     }
-}};
+  }
+};
 
 /**
  * @brief Enum for type of OTA job messages received.
@@ -147,10 +149,10 @@ jobMessageType_t getJobMessageType(const char *pTopicName,
 
   /* Lookup table for OTA job message string. */
   static const char *const pJobTopicFilters[jobMessageTypeMax] =
-      {
-          OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/$next/get/accepted",
-          OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/notify-next",
-      };
+  {
+    OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/$next/get/accepted",
+    OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/notify-next",
+  };
 
   /* Match the input topic filter against the wild-card pattern of topics filters
   * relevant for the OTA Update service to determine the type of topic filter. */
@@ -227,9 +229,13 @@ static void mqttJobCallback(MQTTContext *,
       break;
 
     default:
-      ESP_LOGI(TAG, "Received job message %s size %zu.\n\n",
+      ESP_LOGD(TAG, "Received job message on topic '%.*s', msgSize=%zu.",
+               pPublishInfo->topicNameLength,
                pPublishInfo->pTopicName,
                pPublishInfo->payloadLength);
+      ESP_LOGD(TAG, "Message %.*s.\n\n",
+               pPublishInfo->payloadLength,
+               (const char*)pPublishInfo->pPayload);
   }
 }
 
@@ -255,17 +261,17 @@ static OtaMqttStatus_t mqttSubscribe(const char *pTopicFilter,
   OtaMqttStatus_t otaRet = OtaMqttSuccess;
 
   static const char *const pWildCardTopicFilters[] = {
-      OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/#",
-      OTA_TOPIC_PREFIX OTA_TOPIC_STREAM "/#"
+    OTA_TOPIC_PREFIX OTA_TOPIC_JOBS "/#",
+    OTA_TOPIC_PREFIX OTA_TOPIC_STREAM "/#"
   };
 
   static const int NUM_SUBSCRIPTIONS = 1;
   MQTTSubscribeInfo_t subscribeInfo[NUM_SUBSCRIPTIONS] = {
-      {
-          .qos = MQTTQoS::MQTTQoS1,
-          .pTopicFilter = pTopicFilter,
-          .topicFilterLength = (uint16_t) topicFilterLength
-      }
+    {
+      .qos = MQTTQoS::MQTTQoS1,
+      .pTopicFilter = pTopicFilter,
+      .topicFilterLength = (uint16_t) topicFilterLength
+    }
   };
 
   // Nothing will work if we don't have subscriptions,
@@ -307,13 +313,13 @@ static OtaMqttStatus_t mqttPublish(const char *const pacTopic,
   OtaMqttStatus_t otaRet = OtaMqttSuccess;
 
   MQTTPublishInfo_t publishInfo = {
-      .qos = (MQTTQoS_t) qos,
-      .retain = false,
-      .dup = false,
-      .pTopicName = pacTopic,
-      .topicNameLength = topicLen,
-      .pPayload = pMsg,
-      .payloadLength = msgSize,
+    .qos = (MQTTQoS_t) qos,
+    .retain = false,
+    .dup = false,
+    .pTopicName = pacTopic,
+    .topicNameLength = topicLen,
+    .pPayload = pMsg,
+    .payloadLength = msgSize,
   };
 
   int ret = mqtt_client_publish(&publishInfo, 0);
@@ -329,11 +335,11 @@ static OtaMqttStatus_t mqttUnsubscribe(const char *pTopicFilter,
                                        uint8_t qos) {
   static const int NUM_SUBSCRIPTIONS = 1;
   MQTTSubscribeInfo_t subscribeInfo[NUM_SUBSCRIPTIONS] = {
-      {
-          .qos = (MQTTQoS_t) qos,
-          .pTopicFilter = pTopicFilter,
-          .topicFilterLength = (uint16_t) topicFilterLength
-      }
+    {
+      .qos = (MQTTQoS_t) qos,
+      .pTopicFilter = pTopicFilter,
+      .topicFilterLength = (uint16_t) topicFilterLength
+    }
   };
 
   auto res = mqtt_client_unsubscribe(subscribeInfo, NUM_SUBSCRIPTIONS, CONFIG_MQTT_AWSC_ACK_TIMEOUT_MS);
@@ -375,7 +381,7 @@ void otaEventBufferFree(OtaEventData_t *const pxBuffer) {
     (void) pthread_mutex_unlock(&bufferMutex);
   } else {
     ESP_LOGE(TAG, "Failed to get buffer mutex: "
-                  ",errno=%s", strerror(errno));
+             ",errno=%s", strerror(errno));
   }
 }
 
@@ -547,20 +553,20 @@ esp_err_t mqtt_ota_init(EventGroupHandle_t networkEventGroup) {
   bitmap = static_cast<uint8_t *>(malloc(OTA_MAX_BLOCK_BITMAP_SIZE));
 
   static OtaAppBuffer_t otaBuffer = {
-      .pUpdateFilePath    = updateFilePath,
-      .updateFilePathsize = OTA_MAX_FILE_PATH_SIZE,
-      .pCertFilePath      = certFilePath,
-      .certFilePathSize   = OTA_MAX_FILE_PATH_SIZE,
-      .pStreamName        = streamName,
-      .streamNameSize     = OTA_MAX_STREAM_NAME_SIZE,
-      .pDecodeMemory      = decodeMem,
-      .decodeMemorySize   = otaconfigFILE_BLOCK_SIZE,
-      .pFileBitmap        = bitmap,
-      .fileBitmapSize     = OTA_MAX_BLOCK_BITMAP_SIZE,
-      .pUrl = nullptr,
-      .urlSize = 0,
-      .pAuthScheme = nullptr,
-      .authSchemeSize = 0
+    .pUpdateFilePath = updateFilePath,
+    .updateFilePathsize = OTA_MAX_FILE_PATH_SIZE,
+    .pCertFilePath = certFilePath,
+    .certFilePathSize = OTA_MAX_FILE_PATH_SIZE,
+    .pStreamName = streamName,
+    .streamNameSize = OTA_MAX_STREAM_NAME_SIZE,
+    .pDecodeMemory = decodeMem,
+    .decodeMemorySize = otaconfigFILE_BLOCK_SIZE,
+    .pFileBitmap = bitmap,
+    .fileBitmapSize = OTA_MAX_BLOCK_BITMAP_SIZE,
+    .pUrl = nullptr,
+    .urlSize = 0,
+    .pAuthScheme = nullptr,
+    .authSchemeSize = 0
   };
 
 
@@ -581,7 +587,7 @@ esp_err_t mqtt_ota_init(EventGroupHandle_t networkEventGroup) {
 
   return ret;
 
-  error:
+error:
   ESP_LOGE(TAG, "Init failed, OTA not available.");
   return ret;
 }
