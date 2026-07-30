@@ -1,15 +1,12 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 
+# Stripped down to wifi/sntp/nvs/identity only.
+# MQTT, shadow, OTA, and fleet provisioning have been removed.
 set(COMPONENT_SRCDIRS
         src/
         src/common
-        src/mqtt
         src/wifi
         src/sntp
-        src/shadow
-        src/fleet_provisioning
-        src/ota
-        src/mqtt/port/network_transport
         )
 
 set(COMPONENT_ADD_INCLUDEDIRS
@@ -19,14 +16,12 @@ set(COMPONENT_ADD_INCLUDEDIRS
 set(COMPONENT_REQUIRES
         freertos
         nvs_flash
-        wifi_provisioning
-        mbedtls
+        esp_wifi
+        esp_netif
+        esp_event
+        esp_app_format
+        network_provisioning
         qrcode
-        posix_compat
-        coreJSON
-        coreMQTT
-        backoffAlgorithm
-        ota-for-aws-iot-embedded-sdk
         )
 
 idf_component_register(
@@ -34,5 +29,3 @@ idf_component_register(
         REQUIRES ${COMPONENT_REQUIRES}
         INCLUDE_DIRS ${COMPONENT_ADD_INCLUDEDIRS}
 )
-
-
