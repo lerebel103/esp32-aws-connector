@@ -18,7 +18,6 @@ struct wifi_metrics_t {
   char nm_addr[16];
 };
 
-
 void wifi_connect_init(EventGroupHandle_t networkEventGroup);
 
 wifi_metrics_t wifi_connect_get_metrics();
