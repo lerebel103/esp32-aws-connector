@@ -283,15 +283,14 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
 
     // wifi_prov_mgr_endpoint_create("custom-data");
 
-    network_prov_security_t security = NETWORK_PROV_SECURITY_1;
+    /* Use security mode 1 (x25519 handshake with proof-of-possession) */
+    network_prov_security_t security = (network_prov_security_t)1;
 
     /* Proof of possession is short mac */
     const char *pop = _get_short_mac();
 
-    /* This is the structure for passing security parameters
-     * for the protocomm security 1.
-     */
-    network_prov_security1_params_t *sec_params = pop;
+    /* Security params for protocomm security 1 */
+    const void *sec_params = (const void *)pop;
 
     const char *username = NULL;
     ESP_ERROR_CHECK(network_prov_mgr_start_provisioning(security, (const void *)sec_params, service_name, NULL));
