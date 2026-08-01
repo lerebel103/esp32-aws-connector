@@ -1,4 +1,4 @@
-#include "aws_connector.h"
+#include "connectivity.h"
 
 #include <esp_app_desc.h>
 #include <esp_log.h>
@@ -10,7 +10,7 @@
 
 static EventGroupHandle_t xNetworkEventGroup;
 
-void aws_connector_init(EventGroupHandle_t net_group) {
+void connectivity_init(EventGroupHandle_t net_group) {
   xNetworkEventGroup = net_group;
 
   ESP_ERROR_CHECK( nvs_init() );

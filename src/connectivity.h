@@ -4,4 +4,4 @@
 #include <freertos/event_groups.h>
 
 
-void aws_connector_init(EventGroupHandle_t net_group);
+void connectivity_init(EventGroupHandle_t net_group);
