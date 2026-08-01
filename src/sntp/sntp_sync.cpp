@@ -1,14 +1,15 @@
+#include "sntp_sync.h"
+
+#include "common/events_common.h"
+
+#include <esp_attr.h>
+#include <esp_log.h>
+#include <esp_sntp.h>
+#include <freertos/event_groups.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <freertos/event_groups.h>
-
-#include "sntp_sync.h"
-#include <esp_sntp.h>
-#include <esp_log.h>
-#include <esp_attr.h>
 
 #include <sys/time.h>
-#include "common/events_common.h"
 
 #define TAG "sntp"
 
@@ -48,7 +49,7 @@ static void time_synced_handler(struct timeval *new_time) {
   s_metrics.last_sync_time = now;
 }
 
-static void initialize_sntp(const char* primary_server) {
+static void initialize_sntp(const char *primary_server) {
   apply_tz(DEFAULT_SYSTEM_TZ);
   xEventGroupClearBits(xNetworkEventGroup, SNTP_TIME_SYNCED_BIT);
 
@@ -87,8 +88,7 @@ const char *sntp_get_system_tz() {
   return g_system_tz;
 }
 
-
-void sntp_sync_init(EventGroupHandle_t networkEventGroup, const char* primary_server) {
+void sntp_sync_init(EventGroupHandle_t networkEventGroup, const char *primary_server) {
   xNetworkEventGroup = networkEventGroup;
   apply_tz(sntp_get_system_tz());
   initialize_sntp(primary_server);

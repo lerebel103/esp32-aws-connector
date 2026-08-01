@@ -1,21 +1,23 @@
 #include "shadow_handler.h"
+
 #include "common/events_common.h"
-#include "core_mqtt_serializer.h"
-#include "core_mqtt.h"
-#include "mqtt/mqtt_client.h"
 #include "common/identity.h"
+#include "core_mqtt.h"
+#include "core_mqtt_serializer.h"
 #include "fleet_provisioning/mqtt_provision.h"
-#include <esp_err.h>
+#include "mqtt/mqtt_client.h"
+
 #include <esp_check.h>
-#include <esp_heap_caps.h>
-#include <cstring>
+#include <esp_err.h>
 #include <esp_event.h>
+#include <esp_heap_caps.h>
+
+#include <cstring>
 
 #define TAG "shadow"
 
 #define MAX_HANDLES 10
 static device_shadow_handle_t handles[MAX_HANDLES] = {nullptr};
-
 
 struct device_shadow_t {
   device_shadow_cfg_t cfg;
@@ -28,11 +30,9 @@ struct device_shadow_t {
 };
 
 void null_shadow_handler(MQTTContext_t *, MQTTPublishInfo_t *pxPublishInfo) {
-  ESP_LOGD(TAG, "Receive into NULL shadow handler, topic %.*s: %.*s",
-           pxPublishInfo->topicNameLength, pxPublishInfo->pTopicName,
-           pxPublishInfo->payloadLength, (const char *) pxPublishInfo->pPayload);
+  ESP_LOGD(TAG, "Receive into NULL shadow handler, topic %.*s: %.*s", pxPublishInfo->topicNameLength,
+           pxPublishInfo->pTopicName, pxPublishInfo->payloadLength, (const char *)pxPublishInfo->pPayload);
 }
-
 
 void _allocate_topic(device_shadow_cfg_t cfg, char **dest, const char *command, const char *suffix) {
   if (strlen(suffix) == 0) {
@@ -57,21 +57,15 @@ esp_err_t _subscribe(device_shadow_t *handle) {
   ESP_LOGI(TAG, "### Subscribing to shadow topics for %s", handle->cfg.name);
   static const int NUM_SUBSCRIPTIONS = 3;
   MQTTSubscribeInfo_t subscribeInfo[NUM_SUBSCRIPTIONS] = {
-      {
-          .qos = MQTTQoS::MQTTQoS1,
-          .pTopicFilter = handle->topic_get_sub,
-          .topicFilterLength = (uint16_t) strlen(handle->topic_get_sub)
-      },
-      {
-          .qos = MQTTQoS::MQTTQoS1,
-          .pTopicFilter = handle->topic_update_sub,
-          .topicFilterLength = (uint16_t) strlen(handle->topic_update_sub)
-      },
-      {
-          .qos = MQTTQoS::MQTTQoS1,
-          .pTopicFilter = handle->topic_delete_sub,
-          .topicFilterLength = (uint16_t) strlen(handle->topic_delete_sub)
-      },
+      {.qos = MQTTQoS::MQTTQoS1,
+       .pTopicFilter = handle->topic_get_sub,
+       .topicFilterLength = (uint16_t)strlen(handle->topic_get_sub)},
+      {.qos = MQTTQoS::MQTTQoS1,
+       .pTopicFilter = handle->topic_update_sub,
+       .topicFilterLength = (uint16_t)strlen(handle->topic_update_sub)},
+      {.qos = MQTTQoS::MQTTQoS1,
+       .pTopicFilter = handle->topic_delete_sub,
+       .topicFilterLength = (uint16_t)strlen(handle->topic_delete_sub)},
   };
 
   // Nothing will work if we don't have subscriptions,
@@ -90,8 +84,8 @@ static void _event_handler(void *arg, esp_event_base_t event_base, int32_t event
   if (event_id == CORE_MQTT_CONNECTED_EVENT) {
     if (!mqtt_provisioning_active()) {
       // Re-subscribe all shadow handlers
-      for (auto & i : handles) {
-        auto *handle = (device_shadow_t *) i;
+      for (auto& i : handles) {
+        auto *handle = (device_shadow_t *)i;
         if (handle) {
           _subscribe(handle);
         }
@@ -105,7 +99,7 @@ esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_hand
 
   // See if we still have room in our list
   int idx = 0;
-  for( ; idx < MAX_HANDLES; idx++) {
+  for (; idx < MAX_HANDLES; idx++) {
     if (handles[idx] == nullptr) {
       break;
     }
@@ -118,7 +112,7 @@ esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_hand
 
   device_shadow_t *handle = nullptr;
   ESP_GOTO_ON_FALSE(ret_handle, ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
-  handle = (device_shadow_t *) heap_caps_calloc(1, sizeof(device_shadow_t), MALLOC_CAP_DEFAULT);
+  handle = (device_shadow_t *)heap_caps_calloc(1, sizeof(device_shadow_t), MALLOC_CAP_DEFAULT);
   ESP_GOTO_ON_FALSE(handle, ESP_ERR_NO_MEM, err, TAG, "no memory left for allocation");
 
   // Copy conf across
@@ -148,7 +142,7 @@ esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_hand
   *ret_handle = handle;
   return ret;
 
-  err:
+err:
   if (ret_handle) {
     return shadow_handler_del(handle);
   }
@@ -165,7 +159,7 @@ esp_err_t shadow_handler_get(device_shadow_handle_t handle) {
       .retain = false,
       .dup = false,
       .pTopicName = handle->topic_get_pub,
-      .topicNameLength = (uint16_t) strlen(handle->topic_get_pub),
+      .topicNameLength = (uint16_t)strlen(handle->topic_get_pub),
       .pPayload = payload,
       .payloadLength = strlen(payload),
   };
@@ -174,14 +168,14 @@ esp_err_t shadow_handler_get(device_shadow_handle_t handle) {
   return status == EXIT_SUCCESS ? ESP_OK : ESP_FAIL;
 }
 
-esp_err_t shadow_handler_update(device_shadow_handle_t handle, char* payload, size_t payload_len) {
+esp_err_t shadow_handler_update(device_shadow_handle_t handle, char *payload, size_t payload_len) {
   ESP_RETURN_ON_FALSE(handle, ESP_ERR_INVALID_ARG, TAG, "shadow handler instance is null");
   MQTTPublishInfo_t publishInfo = {
       .qos = MQTTQoS_t::MQTTQoS1,
       .retain = false,
       .dup = false,
       .pTopicName = handle->topic_update_pub,
-      .topicNameLength = (uint16_t) strlen(handle->topic_update_pub),
+      .topicNameLength = (uint16_t)strlen(handle->topic_update_pub),
       .pPayload = payload,
       .payloadLength = payload_len,
   };
@@ -195,7 +189,7 @@ esp_err_t shadow_handler_del(device_shadow_handle_t handle) {
 
   // Find it
   bool found = false;
-  for (auto & i : handles) {
+  for (auto& i : handles) {
     if (i == handle) {
       i = nullptr;
       found = true;

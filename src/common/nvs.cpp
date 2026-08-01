@@ -1,11 +1,13 @@
 #include "nvs.h"
+
 #include "events_common.h"
-#include <nvs_flash.h>
+
 #include <esp_log.h>
+#include <nvs_flash.h>
 
 #define IDENTITY_NS "identity"
 #define NVS_FACTORY_PART_NAME "nvs_factory"
-#define MAX_VALUE_LEN (10*1024)
+#define MAX_VALUE_LEN (10 * 1024)
 
 #define TAG "nvs"
 
@@ -13,18 +15,15 @@ static void _nvs_factory_restore_commit() {
   ESP_LOGW(TAG, "Restoring NVS from Factory settings.");
 
   if (nvs_flash_init_partition(NVS_FACTORY_PART_NAME) == ESP_OK) {
-
     // Open factory NVS as read-only
     nvs_handle factory_handle;
-    ESP_ERROR_CHECK(nvs_open_from_partition(NVS_FACTORY_PART_NAME, IDENTITY_NS, NVS_READONLY,
-                                            &factory_handle));
+    ESP_ERROR_CHECK(nvs_open_from_partition(NVS_FACTORY_PART_NAME, IDENTITY_NS, NVS_READONLY, &factory_handle));
 
     // Open working NVS partition as read/write
     nvs_handle working_handle;
-    ESP_ERROR_CHECK(nvs_open_from_partition(NVS_DEFAULT_PART_NAME, IDENTITY_NS, NVS_READWRITE,
-                                            &working_handle));
+    ESP_ERROR_CHECK(nvs_open_from_partition(NVS_DEFAULT_PART_NAME, IDENTITY_NS, NVS_READWRITE, &working_handle));
 
-    char* copy_buffer = (char*)calloc(MAX_VALUE_LEN, 1);
+    char *copy_buffer = (char *)calloc(MAX_VALUE_LEN, 1);
 
     // Good, now all we have to do is shift all keys across, and we are done
     int keys_count = 0;
@@ -41,7 +40,7 @@ static void _nvs_factory_restore_commit() {
           nvs_set_u8(working_handle, info.key, val);
           break;
         }
-        case NVS_TYPE_I8: {  /*!< Type int8_t */
+        case NVS_TYPE_I8: { /*!< Type int8_t */
           int8_t val;
           nvs_get_i8(factory_handle, info.key, &val);
           nvs_set_i8(working_handle, info.key, val);
@@ -103,7 +102,7 @@ static void _nvs_factory_restore_commit() {
       nvs_commit(working_handle);
 
       res = nvs_entry_next(&it);
-      ++ keys_count;
+      ++keys_count;
     }
 
     nvs_release_iterator(it);
@@ -149,7 +148,4 @@ esp_err_t nvs_init() {
   } else {
     return ESP_FAIL;
   }
-
-
-
 }

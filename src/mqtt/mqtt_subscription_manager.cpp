@@ -33,7 +33,6 @@
 /* Include header for the subscription manager. */
 #include "mqtt_subscription_manager.h"
 
-
 /**
  * @brief Represents a registered record of the topic filter and its associated callback
  * in the subscription manager registry.
@@ -49,7 +48,7 @@ typedef struct SubscriptionManagerRecord {
  * subscription manager.
  */
 #ifndef MAX_SUBSCRIPTION_CALLBACK_RECORDS
-#define MAX_SUBSCRIPTION_CALLBACK_RECORDS    32
+#define MAX_SUBSCRIPTION_CALLBACK_RECORDS 32
 #endif
 
 /**
@@ -59,8 +58,7 @@ static SubscriptionManagerRecord_t callbackRecordList[MAX_SUBSCRIPTION_CALLBACK_
 
 /*-----------------------------------------------------------*/
 
-void SubscriptionManager_DispatchHandler(MQTTContext_t *pContext,
-                                         MQTTPublishInfo_t *pPublishInfo) {
+void SubscriptionManager_DispatchHandler(MQTTContext_t *pContext, MQTTPublishInfo_t *pPublishInfo) {
   bool matchStatus = false;
   bool found = false;
   size_t listIndex = 0u;
@@ -68,14 +66,11 @@ void SubscriptionManager_DispatchHandler(MQTTContext_t *pContext,
   assert(pPublishInfo != NULL);
   assert(pContext != NULL);
 
-
   /* Iterate through record list to find matching topics, and invoke their callbacks. */
   for (listIndex = 0; listIndex < MAX_SUBSCRIPTION_CALLBACK_RECORDS; listIndex++) {
     if ((callbackRecordList[listIndex].pTopicFilter != NULL) &&
-        (MQTT_MatchTopic(pPublishInfo->pTopicName,
-                         pPublishInfo->topicNameLength,
-                         callbackRecordList[listIndex].pTopicFilter,
-                         callbackRecordList[listIndex].topicFilterLength,
+        (MQTT_MatchTopic(pPublishInfo->pTopicName, pPublishInfo->topicNameLength,
+                         callbackRecordList[listIndex].pTopicFilter, callbackRecordList[listIndex].topicFilterLength,
                          &matchStatus) == MQTTSuccess) &&
         matchStatus) {
       found = true;
@@ -85,16 +80,13 @@ void SubscriptionManager_DispatchHandler(MQTTContext_t *pContext,
   }
 
   if (!found) {
-    LogError(("No call back registered for TopicName=%.*s",
-        pPublishInfo->topicNameLength,
-        pPublishInfo->pTopicName));
+    LogError(("No call back registered for TopicName=%.*s", pPublishInfo->topicNameLength, pPublishInfo->pTopicName));
   }
 }
 
 /*-----------------------------------------------------------*/
 
-SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTopicFilter,
-                                                                 uint16_t topicFilterLength,
+SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTopicFilter, uint16_t topicFilterLength,
                                                                  SubscriptionManagerCallback_t callback) {
   assert(pTopicFilter != NULL);
   assert(topicFilterLength != 0);
@@ -110,16 +102,14 @@ SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTo
   while ((recordExists == false) && (index < MAX_SUBSCRIPTION_CALLBACK_RECORDS)) {
     /* Check if the index represents an empty spot in the registry. If we had already
      * found an empty spot in the list, we will not update it. */
-    if ((availableIndex == MAX_SUBSCRIPTION_CALLBACK_RECORDS) &&
-        (callbackRecordList[index].pTopicFilter == NULL)) {
+    if ((availableIndex == MAX_SUBSCRIPTION_CALLBACK_RECORDS) && (callbackRecordList[index].pTopicFilter == NULL)) {
       availableIndex = index;
     }
 
-      /* Check if the current record's topic filter in the registry matches the topic filter
-       * we are trying to register. */
+    /* Check if the current record's topic filter in the registry matches the topic filter
+     * we are trying to register. */
     else if ((callbackRecordList[index].topicFilterLength == topicFilterLength) &&
-             (strncmp(pTopicFilter, callbackRecordList[index].pTopicFilter, topicFilterLength)
-              == 0)) {
+             (strncmp(pTopicFilter, callbackRecordList[index].pTopicFilter, topicFilterLength) == 0)) {
       recordExists = true;
     }
 
@@ -128,17 +118,13 @@ SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTo
 
   if (recordExists == true) {
     /* The record for the topic filter already exists. */
-    LogDebug(("Record for topic filter already exists: TopicFilter=%.*s",
-        topicFilterLength,
-        pTopicFilter));
+    LogDebug(("Record for topic filter already exists: TopicFilter=%.*s", topicFilterLength, pTopicFilter));
 
     returnStatus = SUBSCRIPTION_MANAGER_RECORD_EXISTS;
   } else if (availableIndex == MAX_SUBSCRIPTION_CALLBACK_RECORDS) {
     /* The registry is full. */
     LogError(("Unable to register callback: Registry list is full: TopicFilter=%.*s, MaxRegistrySize=%u",
-        topicFilterLength,
-        pTopicFilter,
-        MAX_SUBSCRIPTION_CALLBACK_RECORDS));
+              topicFilterLength, pTopicFilter, MAX_SUBSCRIPTION_CALLBACK_RECORDS));
 
     returnStatus = SUBSCRIPTION_MANAGER_REGISTRY_FULL;
   } else {
@@ -148,9 +134,7 @@ SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTo
 
     returnStatus = SUBSCRIPTION_MANAGER_SUCCESS;
 
-    LogDebug(("Added callback to registry: TopicFilter=%.*s",
-        topicFilterLength,
-        pTopicFilter));
+    LogDebug(("Added callback to registry: TopicFilter=%.*s", topicFilterLength, pTopicFilter));
   }
 
   return returnStatus;
@@ -158,8 +142,7 @@ SubscriptionManagerStatus_t SubscriptionManager_RegisterCallback(const char *pTo
 
 /*-----------------------------------------------------------*/
 
-void SubscriptionManager_RemoveCallback(const char *pTopicFilter,
-                                        uint16_t topicFilterLength) {
+void SubscriptionManager_RemoveCallback(const char *pTopicFilter, uint16_t topicFilterLength) {
   assert(pTopicFilter != NULL);
   assert(topicFilterLength != 0);
 
@@ -185,13 +168,10 @@ void SubscriptionManager_RemoveCallback(const char *pTopicFilter,
     pRecord->topicFilterLength = 0u;
     pRecord->callback = NULL;
 
-    LogDebug(("Deleted callback record for topic filter: TopicFilter=%.*s",
-        topicFilterLength,
-        pTopicFilter));
+    LogDebug(("Deleted callback record for topic filter: TopicFilter=%.*s", topicFilterLength, pTopicFilter));
   } else {
-    LogWarn(("Attempted to remove callback for un-registered topic filter: TopicFilter=%.*s",
-        topicFilterLength,
-        pTopicFilter));
+    LogWarn(("Attempted to remove callback for un-registered topic filter: TopicFilter=%.*s", topicFilterLength,
+             pTopicFilter));
   }
 }
 /*-----------------------------------------------------------*/

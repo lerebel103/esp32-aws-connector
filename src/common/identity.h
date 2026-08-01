@@ -1,6 +1,5 @@
 #pragma once
 
-
 struct identity_t {
   char *thing_type;
   int8_t hardware_major;
@@ -16,16 +15,11 @@ struct identity_t {
   char *device_private_key;
 };
 
-const char* identity_thing_id();
+const char *identity_thing_id();
 
-const identity_t* identity_get();
+const identity_t *identity_get();
 
 void identity_reload();
 
-esp_err_t identity_save_device_auth(
-    const char* device_cert,
-    size_t device_cert_len,
-    const char* device_private_key,
-    size_t device_private_key_len
-    );
-
+esp_err_t identity_save_device_auth(const char *device_cert, size_t device_cert_len, const char *device_private_key,
+                                    size_t device_private_key_len);

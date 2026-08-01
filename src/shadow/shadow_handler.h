@@ -1,9 +1,10 @@
 #pragma once
 
-#include <esp_err.h>
-#include "core_mqtt_serializer.h"
 #include "core_mqtt.h"
+#include "core_mqtt_serializer.h"
 #include "mqtt/mqtt_subscription_manager.h"
+
+#include <esp_err.h>
 
 /**
  * Handle for an instance of wave generator
@@ -11,7 +12,6 @@
 typedef struct device_shadow_t *device_shadow_handle_t;
 
 void null_shadow_handler(MQTTContext_t *, MQTTPublishInfo_t *pxPublishInfo);
-
 
 struct device_shadow_cfg_t {
   /**
@@ -24,7 +24,7 @@ struct device_shadow_cfg_t {
   SubscriptionManagerCallback_t deleted = null_shadow_handler;
 };
 
-esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_handle_t* ret_handle);
+esp_err_t shadow_handler_init(struct device_shadow_cfg_t cfg, device_shadow_handle_t *ret_handle);
 esp_err_t shadow_handler_get(device_shadow_handle_t handle);
-esp_err_t shadow_handler_update(device_shadow_handle_t handle, char* payload, size_t payload_len);
+esp_err_t shadow_handler_update(device_shadow_handle_t handle, char *payload, size_t payload_len);
 esp_err_t shadow_handler_del(device_shadow_handle_t handle);

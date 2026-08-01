@@ -1,36 +1,37 @@
 #include "wifi_connect.h"
 
+#include "common/events_common.h"
+#include "common/identity.h"
+#include "sntp/sntp_sync.h"
+
+#include <esp_log.h>
+#include <esp_mac.h>
+#include <esp_netif.h>
+#include <esp_timer.h>
+#include <esp_wifi.h>
+#include <esp_wifi_default.h>
+#include <freertos/event_groups.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <freertos/event_groups.h>
+
+#include <cstring>
 #include <network_provisioning/manager.h>
 #include <network_provisioning/scheme_ble.h>
 #include <qrcode.h>
-#include "sntp/sntp_sync.h"
-#include "common/events_common.h"
-#include "common/identity.h"
-#include <esp_netif.h>
-#include <esp_wifi_default.h>
-#include <esp_wifi.h>
-#include <esp_log.h>
-#include <esp_mac.h>
-#include <cstring>
-#include <esp_timer.h>
-
 
 #define TAG "wifi_connect"
 
-#define CONFIG_EXAMPLE_RESET_PROV_MGR_ON_FAILURE  1
-#define CONFIG_EXAMPLE_PROV_MGR_MAX_RETRY_CNT     3
+#define CONFIG_EXAMPLE_RESET_PROV_MGR_ON_FAILURE 1
+#define CONFIG_EXAMPLE_PROV_MGR_MAX_RETRY_CNT 3
 
-#define PROV_QR_VERSION         "v1"
-#define PROV_TRANSPORT_BLE      "ble"
+#define PROV_QR_VERSION "v1"
+#define PROV_TRANSPORT_BLE "ble"
 
 // Calculates the number of bytes needed to store any QR Code up to and including the given version number,
 // as a compile-time constant. For example, 'uint8_t buffer[qrcodegen_BUFFER_LEN_FOR_VERSION(25)];'
 // can store any single QR Code from version 1 to 25 (inclusive). The result fits in an int (or int16).
 // Requires qrcodegen_VERSION_MIN <= n <= qrcodegen_VERSION_MAX.
-#define qrcodegen_BUFFER_LEN_FOR_VERSION(n)  ((((n) * 4 + 17) * ((n) * 4 + 17) + 7) / 8 + 1)
+#define qrcodegen_BUFFER_LEN_FOR_VERSION(n) ((((n) * 4 + 17) * ((n) * 4 + 17) + 7) / 8 + 1)
 
 /**
  * @brief The event group used to manage network events.
@@ -45,14 +46,12 @@ static char *_get_short_mac() {
   static char mac[14];
   uint8_t l_Mac[6];
   esp_efuse_mac_get_default(l_Mac);
-  snprintf(mac, 14, "%02hX%02hX%02hX%02hX%02hX%02hX",
-           l_Mac[0], l_Mac[1], l_Mac[2], l_Mac[3], l_Mac[4], l_Mac[5]);
+  snprintf(mac, 14, "%02hX%02hX%02hX%02hX%02hX%02hX", l_Mac[0], l_Mac[1], l_Mac[2], l_Mac[3], l_Mac[4], l_Mac[5]);
   return mac;
 }
 
 /* Event handler for catching system events */
-static void event_handler(void *arg, esp_event_base_t event_base,
-                          int32_t event_id, void *event_data) {
+static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
 #ifdef CONFIG_EXAMPLE_RESET_PROV_MGR_ON_FAILURE
   static int retries;
 #endif
@@ -62,17 +61,20 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "Provisioning started");
         break;
       case NETWORK_PROV_WIFI_CRED_RECV: {
-        wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *) event_data;
-        ESP_LOGI(TAG, "Received Wi-Fi credentials"
-                 "\n\tSSID     : %s\n", (const char *) wifi_sta_cfg->ssid);
+        wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *)event_data;
+        ESP_LOGI(TAG,
+                 "Received Wi-Fi credentials"
+                 "\n\tSSID     : %s\n",
+                 (const char *)wifi_sta_cfg->ssid);
         break;
       }
       case NETWORK_PROV_WIFI_CRED_FAIL: {
-        network_prov_wifi_sta_fail_reason_t *reason = (network_prov_wifi_sta_fail_reason_t *) event_data;
-        ESP_LOGE(TAG, "Provisioning failed!\n\tReason : %s"
+        network_prov_wifi_sta_fail_reason_t *reason = (network_prov_wifi_sta_fail_reason_t *)event_data;
+        ESP_LOGE(TAG,
+                 "Provisioning failed!\n\tReason : %s"
                  "\n\tPlease reset to factory and retry provisioning",
-                 (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ?
-                 "Wi-Fi station authentication failed" : "Wi-Fi access-point not found");
+                 (*reason == NETWORK_PROV_WIFI_STA_AUTH_ERROR) ? "Wi-Fi station authentication failed"
+                                                               : "Wi-Fi access-point not found");
 #ifdef CONFIG_EXAMPLE_RESET_PROV_MGR_ON_FAILURE
         retries++;
         if (retries >= CONFIG_EXAMPLE_PROV_MGR_MAX_RETRY_CNT) {
@@ -105,12 +107,12 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     // We no longer need the contents of qrcode
     if (s_qrcode) {
-      free((void *) s_qrcode);
+      free((void *)s_qrcode);
       s_qrcode = nullptr;
       s_qr_len = 0;
     }
 
-    ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+    ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     sprintf(s_metrics.ip_addr, IPSTR, IP2STR(&event->ip_info.ip));
     sprintf(s_metrics.gw_addr, IPSTR, IP2STR(&event->ip_info.gw));
     sprintf(s_metrics.nm_addr, IPSTR, IP2STR(&event->ip_info.netmask));
@@ -139,7 +141,6 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
-
 static void wifi_init_sta(void) {
   /* Start Wi-Fi in station mode */
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -156,10 +157,8 @@ static void get_device_service_name(char *service_name, size_t max) {
   uint8_t eth_mac[6];
   const char *ssid_prefix = "PROV_";
   esp_wifi_get_mac(WIFI_IF_STA, eth_mac);
-  snprintf(service_name, max, "%s%02X%02X%02X",
-           ssid_prefix, eth_mac[3], eth_mac[4], eth_mac[5]);
+  snprintf(service_name, max, "%s%02X%02X%02X", ssid_prefix, eth_mac[3], eth_mac[4], eth_mac[5]);
 }
-
 
 /* static esp_err_t custom_prov_data_handler(uint32_t session_id, const uint8_t *inbuf, ssize_t inlen,
                                    uint8_t **outbuf, ssize_t *outlen, void *priv_data) {
@@ -179,10 +178,10 @@ static void get_device_service_name(char *service_name, size_t max) {
 static void _handle_qrcode(esp_qrcode_handle_t qrcode) {
   // Copy qr content
   if (s_qrcode == nullptr) {
-    s_qrcode = (uint8_t *) calloc(1, s_qr_len);
+    s_qrcode = (uint8_t *)calloc(1, s_qr_len);
   }
 
-  memcpy((void *) s_qrcode, qrcode, s_qr_len);
+  memcpy((void *)s_qrcode, qrcode, s_qr_len);
   esp_qrcode_print_console(qrcode);
 }
 
@@ -193,7 +192,8 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
   }
   char payload[150] = {0};
   if (pop) {
-    snprintf(payload, sizeof(payload), "{\"ver\":\"%s\",\"name\":\"%s\""
+    snprintf(payload, sizeof(payload),
+             "{\"ver\":\"%s\",\"name\":\"%s\""
              ",\"pop\":\"%s\",\"transport\":\"%s\"}",
              PROV_QR_VERSION, name, pop, transport);
   }
@@ -221,7 +221,6 @@ static void revstr(uint8_t *str1, size_t len) {
   }
 }
 
-
 wifi_metrics_t wifi_connect_get_metrics() {
   // Populate metrics we haven't yet populated
   wifi_ap_record_t record;
@@ -234,7 +233,6 @@ wifi_metrics_t wifi_connect_get_metrics() {
 
   return s_metrics;
 }
-
 
 void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
   xNetworkEventGroup = networkEventGroup;
@@ -262,12 +260,13 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
     xEventGroupClearBits(xNetworkEventGroup, WIFI_PROVISIONED_BIT);
 
     network_prov_mgr_config_t config = {
-      .scheme = network_prov_scheme_ble,
-      .scheme_event_handler = NETWORK_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
-      .app_event_handler = NETWORK_PROV_EVENT_HANDLER_NONE,
-      .network_prov_wifi_conn_cfg = {
-        .wifi_conn_attempts = 0,
-      },
+        .scheme = network_prov_scheme_ble,
+        .scheme_event_handler = NETWORK_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM,
+        .app_event_handler = NETWORK_PROV_EVENT_HANDLER_NONE,
+        .network_prov_wifi_conn_cfg =
+            {
+                .wifi_conn_attempts = 0,
+            },
     };
     ESP_ERROR_CHECK(network_prov_mgr_init(config));
 
@@ -295,7 +294,7 @@ void wifi_connect_init(EventGroupHandle_t networkEventGroup) {
     network_prov_security1_params_t *sec_params = pop;
 
     const char *username = NULL;
-    ESP_ERROR_CHECK(network_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, NULL));
+    ESP_ERROR_CHECK(network_prov_mgr_start_provisioning(security, (const void *)sec_params, service_name, NULL));
     // wifi_prov_mgr_endpoint_register("custom-data", custom_prov_data_handler, NULL);
     wifi_prov_print_qr(service_name, username, pop, PROV_TRANSPORT_BLE);
   } else {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <freertos/FreeRTOS.h>
 
 bool mqtt_provisioning_active();
 

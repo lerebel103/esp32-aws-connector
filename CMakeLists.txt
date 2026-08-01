@@ -29,3 +29,5 @@ idf_component_register(
         REQUIRES ${COMPONENT_REQUIRES}
         INCLUDE_DIRS ${COMPONENT_ADD_INCLUDEDIRS}
 )
+
+target_compile_options(${COMPONENT_LIB} PRIVATE "-include" "freertos/FreeRTOS.h")

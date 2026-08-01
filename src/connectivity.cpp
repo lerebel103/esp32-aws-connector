@@ -1,10 +1,11 @@
 #include "connectivity.h"
 
-#include <esp_app_desc.h>
-#include <esp_log.h>
-#include "wifi/wifi_connect.h"
 #include "common/identity.h"
 #include "common/nvs.h"
+#include "wifi/wifi_connect.h"
+
+#include <esp_app_desc.h>
+#include <esp_log.h>
 
 #define TAG "networking"
 
@@ -13,7 +14,7 @@ static EventGroupHandle_t xNetworkEventGroup;
 void connectivity_init(EventGroupHandle_t net_group) {
   xNetworkEventGroup = net_group;
 
-  ESP_ERROR_CHECK( nvs_init() );
+  ESP_ERROR_CHECK(nvs_init());
 
   auto identity = identity_get();
   ESP_LOGI(TAG, "--------------------------------------------------------------------------------");
